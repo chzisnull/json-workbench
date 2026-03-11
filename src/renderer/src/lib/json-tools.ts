@@ -38,48 +38,11 @@ export interface JsonCompareReport {
   status: 'blocked' | 'ready'
 }
 
-function clampPosition(source: string, position: number): number {
-  if (!Number.isFinite(position)) {
-    return 0
-  }
-
-  return Math.max(0, Math.min(position, source.length))
-}
-
-function getLineColumnFromPosition(
-  source: string,
-  position: number
-): Pick<JsonDiagnostic, 'column' | 'line'> {
-  const safePosition = clampPosition(source, position)
-  let line = 1
-  let column = 1
-
-  for (let index = 0; index < safePosition; index += 1) {
-    if (source[index] === '\n') {
-      line += 1
-      column = 1
-    } else {
-      column += 1
-    }
-  }
-
-  return { column, line }
-}
-
-function formatParseErrorMessage(parseError: ParseError): string {
-  const code = printParseErrorCode(parseError.error)
-  return code.replace(/([a-z])([A-Z])/g, '$1 $2')
-}
-
-function createJsonDiagnostic(parseError: ParseError, source: string): JsonDiagnostic {
-  const position = clampPosition(source, parseError.offset)
-  const { column, line } = getLineColumnFromPosition(source, position)
-
+function getLineColumn(source: string, position: number) {
+  const lines = source.substring(0, position).split('\n')
   return {
-    column,
-    line,
-    message: formatParseErrorMessage(parseError),
-    position
+    line: lines.length,
+    column: lines[lines.length - 1].length + 1
   }
 }
 
@@ -90,14 +53,18 @@ export function inspectJsonDocument(rawText: string): JsonDocumentState {
   }
 
   const parseErrors: ParseError[] = []
-  parse(rawText, parseErrors, {
-    allowTrailingComma: false,
-    disallowComments: true
-  })
+  parse(rawText, parseErrors, { allowTrailingComma: false, disallowComments: true })
 
   if (parseErrors.length > 0) {
+    const error = parseErrors[0]
+    const { line, column } = getLineColumn(rawText, error.offset)
     return {
-      diagnostics: [createJsonDiagnostic(parseErrors[0], rawText)],
+      diagnostics: [{
+        line,
+        column,
+        position: error.offset,
+        message: printParseErrorCode(error.error).replace(/([a-z])([A-Z])/g, '$1 $2')
+      }],
       formattedText: rawText,
       minifiedText: rawText,
       rawText,
@@ -107,27 +74,18 @@ export function inspectJsonDocument(rawText: string): JsonDocumentState {
   }
 
   try {
-    const parsedValue = JSON.parse(rawText)
+    const parsed = JSON.parse(rawText)
     return {
       diagnostics: [],
-      formattedText: JSON.stringify(parsedValue, null, 2),
-      minifiedText: JSON.stringify(parsedValue),
+      formattedText: JSON.stringify(parsed, null, 2),
+      minifiedText: JSON.stringify(parsed),
       rawText,
       stats,
       status: 'valid'
     }
-  } catch (error) {
+  } catch (e) {
     return {
-      diagnostics: [
-        {
-          ...getLineColumnFromPosition(rawText, 0),
-          message:
-            error instanceof Error && error.message.length > 0
-              ? error.message
-              : 'Invalid JSON input',
-          position: 0
-        }
-      ],
+      diagnostics: [{ line: 1, column: 1, position: 0, message: e instanceof Error ? e.message : 'Invalid JSON' }],
       formattedText: rawText,
       minifiedText: rawText,
       rawText,
@@ -137,152 +95,55 @@ export function inspectJsonDocument(rawText: string): JsonDocumentState {
   }
 }
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value)
-}
-
-function formatCompareValue(value: unknown): string {
-  if (typeof value === 'string') {
-    return JSON.stringify(value)
-  }
-
-  if (value === undefined) {
-    return 'undefined'
-  }
-
-  return JSON.stringify(value)
-}
-
-function joinComparePath(parentPath: string, segment: string | number): string {
-  if (typeof segment === 'number') {
-    return `${parentPath}[${segment}]`
-  }
-
-  return `${parentPath}.${segment}`
-}
-
-function createCompareEntry(
-  path: string,
-  kind: JsonCompareEntry['kind'],
-  before: unknown,
-  after: unknown
-): JsonCompareEntry {
-  return {
-    after: formatCompareValue(after),
-    before: formatCompareValue(before),
-    kind,
-    path
-  }
-}
-
-function diffJsonValues(before: unknown, after: unknown, path = '$'): JsonCompareEntry[] {
-  if (Object.is(before, after)) {
-    return []
-  }
+function diff(before: any, after: any, path = '$'): JsonCompareEntry[] {
+  if (Object.is(before, after)) return []
 
   if (Array.isArray(before) && Array.isArray(after)) {
-    const maxLength = Math.max(before.length, after.length)
     const entries: JsonCompareEntry[] = []
-
-    for (let index = 0; index < maxLength; index += 1) {
-      const nextPath = joinComparePath(path, index)
-
-      if (index >= before.length) {
-        entries.push(createCompareEntry(nextPath, 'added', undefined, after[index]))
-        continue
-      }
-
-      if (index >= after.length) {
-        entries.push(createCompareEntry(nextPath, 'removed', before[index], undefined))
-        continue
-      }
-
-      entries.push(...diffJsonValues(before[index], after[index], nextPath))
+    const max = Math.max(before.length, after.length)
+    for (let i = 0; i < max; i++) {
+      const p = `${path}[${i}]`
+      if (i >= before.length) entries.push({ path: p, kind: 'added', before: '', after: JSON.stringify(after[i]) })
+      else if (i >= after.length) entries.push({ path: p, kind: 'removed', before: JSON.stringify(before[i]), after: '' })
+      else entries.push(...diff(before[i], after[i], p))
     }
-
     return entries
   }
 
-  if (isRecord(before) && isRecord(after)) {
-    const keys = [...new Set([...Object.keys(before), ...Object.keys(after)])].sort()
+  if (typeof before === 'object' && before !== null && typeof after === 'object' && after !== null) {
     const entries: JsonCompareEntry[] = []
-
-    for (const key of keys) {
-      const nextPath = joinComparePath(path, key)
-
-      if (!(key in before)) {
-        entries.push(createCompareEntry(nextPath, 'added', undefined, after[key]))
-        continue
-      }
-
-      if (!(key in after)) {
-        entries.push(createCompareEntry(nextPath, 'removed', before[key], undefined))
-        continue
-      }
-
-      entries.push(...diffJsonValues(before[key], after[key], nextPath))
+    const keys = Array.from(new Set([...Object.keys(before), ...Object.keys(after)]))
+    for (const k of keys) {
+      const p = `${path}.${k}`
+      if (!(k in before)) entries.push({ path: p, kind: 'added', before: '', after: JSON.stringify(after[k]) })
+      else if (!(k in after)) entries.push({ path: p, kind: 'removed', before: JSON.stringify(before[k]), after: '' })
+      else entries.push(...diff(before[k], after[k], p))
     }
-
     return entries
   }
 
-  return [createCompareEntry(path, 'changed', before, after)]
+  return [{ path, kind: 'changed', before: JSON.stringify(before), after: JSON.stringify(after) }]
 }
 
-export function compareJsonDocuments(baselineText: string, currentText: string): JsonCompareReport {
-  const baselineDocument = inspectJsonDocument(baselineText)
-  const currentDocument = inspectJsonDocument(currentText)
+export function compareJsonDocuments(baseline: string, current: string): JsonCompareReport {
+  const bDoc = inspectJsonDocument(baseline)
+  const cDoc = inspectJsonDocument(current)
 
-  if (baselineDocument.status === 'invalid') {
+  if (bDoc.status === 'invalid' || cDoc.status === 'invalid') {
     return {
+      status: 'blocked',
+      message: 'Fix JSON errors before comparing',
       entries: [],
-      message: `Baseline JSON is invalid at line ${baselineDocument.diagnostics[0].line}, column ${baselineDocument.diagnostics[0].column}.`,
-      stats: {
-        added: 0,
-        changed: 0,
-        removed: 0,
-        total: 0
-      },
-      status: 'blocked'
+      stats: { added: 0, changed: 0, removed: 0, total: 0 }
     }
   }
 
-  if (currentDocument.status === 'invalid') {
-    return {
-      entries: [],
-      message: `Current draft is invalid at line ${currentDocument.diagnostics[0].line}, column ${currentDocument.diagnostics[0].column}.`,
-      stats: {
-        added: 0,
-        changed: 0,
-        removed: 0,
-        total: 0
-      },
-      status: 'blocked'
-    }
-  }
+  const entries = diff(JSON.parse(baseline), JSON.parse(current))
+  const stats = entries.reduce((acc, e) => {
+    acc[e.kind]++
+    acc.total++
+    return acc
+  }, { added: 0, changed: 0, removed: 0, total: 0 })
 
-  const baselineValue = JSON.parse(baselineDocument.rawText)
-  const currentValue = JSON.parse(currentDocument.rawText)
-  const entries = diffJsonValues(baselineValue, currentValue)
-
-  const stats = entries.reduce(
-    (result, entry) => {
-      result[entry.kind] += 1
-      result.total += 1
-      return result
-    },
-    {
-      added: 0,
-      changed: 0,
-      removed: 0,
-      total: 0
-    }
-  )
-
-  return {
-    entries,
-    message: entries.length > 0 ? 'Compare ready' : 'Compare ready: no differences detected',
-    stats,
-    status: 'ready'
-  }
+  return { status: 'ready', message: 'Compare ready', entries, stats }
 }

@@ -1,6 +1,6 @@
 {
   "name": "json-workbench",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Cross-platform JSON formatting and diff desktop workbench",
   "main": "./out/main/index.js",
   "author": "chz",
@@ -23,6 +23,8 @@
     "build:win": "npm run build && electron-builder --win",
     "build:win:x64": "npm run build && electron-builder --win --x64",
     "build:mac": "npm run build && electron-builder --mac",
+    "build:mac:arm64": "npm run build && electron-builder --mac --arm64",
+    "build:mac:universal": "npm run build && electron-builder --mac --universal",
     "build:linux": "npm run build && electron-builder --linux"
   },
   "dependencies": {

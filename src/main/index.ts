@@ -1,4 +1,4 @@
-import { app, shell, BrowserWindow, ipcMain } from 'electron'
+import { app, shell, BrowserWindow, ipcMain, nativeImage } from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
@@ -74,6 +74,18 @@ function loadRenderer(window: BrowserWindow): Promise<void> {
   return window.loadFile(join(__dirname, '../renderer/index.html'))
 }
 
+function applyAppIcon(): void {
+  const appIcon = nativeImage.createFromPath(icon)
+
+  if (appIcon.isEmpty()) {
+    return
+  }
+
+  if (process.platform === 'darwin' && app.dock) {
+    app.dock.setIcon(appIcon)
+  }
+}
+
 function createWindow(): BrowserWindow {
   const windowState = createWorkspaceSummary()
 
@@ -85,7 +97,7 @@ function createWindow(): BrowserWindow {
     show: false,
     backgroundColor: '#0d1117',
     titleBarStyle: process.platform === 'darwin' ? 'hiddenInset' : 'default',
-    ...(process.platform === 'linux' ? { icon } : {}),
+    ...(process.platform !== 'darwin' ? { icon } : {}),
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
       sandbox: false
@@ -97,7 +109,7 @@ function createWindow(): BrowserWindow {
     windowId: mainWindow.id
   }
 
-  mainWindow.setTitle(`JSON Workbench • ${registeredWorkspace.label}`)
+  mainWindow.setTitle('JSON Workbench')
   workspaces.set(mainWindow.id, registeredWorkspace)
 
   mainWindow.on('ready-to-show', () => {
@@ -122,6 +134,7 @@ function createWindow(): BrowserWindow {
 
 app.whenReady().then(() => {
   electronApp.setAppUserModelId('com.chz.jsonworkbench')
+  applyAppIcon()
 
   app.on('browser-window-created', (_, window) => {
     optimizer.watchWindowShortcuts(window)
@@ -162,7 +175,7 @@ app.whenReady().then(() => {
     }
 
     workspaces.set(browserWindow.id, nextWorkspace)
-    browserWindow.setTitle(`JSON Workbench • ${nextWorkspace.label}`)
+    browserWindow.setTitle('JSON Workbench')
 
     const payload = getBootstrap(browserWindow.id)
     broadcastWorkspaceState()
