@@ -41,6 +41,8 @@ Release 页面默认写成双语：
 - 先写中文简介
 - 再写 English summary
 - 至少包含：新增、改进、修复、安装包说明
+- 如果是 mac 版本，还要补一条用户可执行的损坏修复提示：
+  - `xattr -cr /Applications/JSON\ Workbench.app`
 
 推荐结构：
 - 中文简介
@@ -48,6 +50,7 @@ Release 页面默认写成双语：
 - English Summary
 - English Highlights
 - Assets / 安装包说明
+- mac 用户损坏修复提示
 
 ## 资产上传检查
 GitHub Release 默认只有：
@@ -66,6 +69,10 @@ GitHub Release 默认只有：
 2. 再看签名：`codesign -dv --verbose=4 <app>`
 3. 再看 Gatekeeper：`spctl -a -vv <app>`
 4. 直接运行主程序查看 dyld / framework 报错
+
+### 面向终端用户的默认提示
+如果用户反馈“应用已损坏”或打不开，Release 页面和 README 默认提示：
+- `xattr -cr /Applications/JSON\ Workbench.app`
 
 ### 当前项目的已知经验
 - 这个项目的 mac arm64 包曾出现 `Electron Framework` 无法加载的问题

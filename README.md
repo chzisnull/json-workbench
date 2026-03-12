@@ -45,6 +45,21 @@ npm run build:win
 
 See `CHANGELOG.md` for release notes and update history.
 
+### Release policy
+
+Future GitHub Releases should always include:
+
+- A Chinese introduction first, followed by an English summary.
+- Bilingual highlights for added, changed, and fixed items when applicable.
+- Install asset notes for macOS and Windows packages when those assets are uploaded.
+- A macOS recovery note for users who see the app reported as damaged:
+
+```bash
+xattr -cr /Applications/JSON\ Workbench.app
+```
+
+Recommended release template: `.github/RELEASE_TEMPLATE.md`
+
 ---
 
 ## 简体中文
@@ -87,6 +102,21 @@ npm run build:win
 ### 版本更新说明
 
 请查看 `CHANGELOG.md`。
+
+### 发布规范
+
+以后发布 GitHub Release 时，默认需要包含：
+
+- 先写中文简介，再写英文简介。
+- 重要更新尽量同时提供中英双语要点。
+- 如果上传了 macOS / Windows 安装包，要在 Release 页面说明对应资产。
+- 如果 mac 用户遇到“应用已损坏”或无法打开的情况，要提示执行：
+
+```bash
+xattr -cr /Applications/JSON\ Workbench.app
+```
+
+推荐直接复用仓库中的发布模板：`.github/RELEASE_TEMPLATE.md`
 
 ---
 
