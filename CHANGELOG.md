@@ -1,5 +1,23 @@
 # Changelog
 
+## v1.2.0 - 2026-03-12
+
+### Added
+- Document-level compare modal that supports multiple side-by-side compare regions.
+- Built-in image conversion utilities for image-to-Base64 and Base64-to-image workflows.
+- Snapshot naming so saved workbench states can be labeled before storing.
+- Regression coverage for workspace scrolling and blocked compare states.
+
+### Changed
+- Expanded the Apple-inspired workspace into a fuller utility layout with compare actions and a tools menu in the top bar.
+- Refined card spacing, editor sizing, and grid behavior so larger document sets stay navigable.
+- Updated release metadata to version `1.2.0` for this publish.
+
+### Fixed
+- Restored vertical scrolling when many document cards are open in the workspace.
+- Prevented compare results from showing misleading zero-diff stats when the source JSON is invalid.
+- Improved DiffEditor test coverage so compare input changes are exercised in the renderer test suite.
+
 ## v1.1.0 - 2026-03-11
 
 ### Added

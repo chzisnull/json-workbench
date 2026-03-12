@@ -1,6 +1,6 @@
 {
   "name": "json-workbench",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "Cross-platform JSON formatting and diff desktop workbench",
   "main": "./out/main/index.js",
   "author": "chz",
