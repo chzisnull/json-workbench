@@ -17,6 +17,13 @@
 
 - macOS:
 - Windows:
+- Linux:
+
+## 安装包检查
+
+- 本次 Release 不能只有 `Source code (zip)` 和 `Source code (tar.gz)`。
+- 必须至少附带当前支持平台对应的软件包资产。
+- 如果缺少任一平台的软件包，请不要把该版本视为正式完成发布。
 
 ## mac 用户提示
 
@@ -49,6 +56,13 @@ Briefly explain who this release is for, what it improves, and the most importan
 
 - macOS:
 - Windows:
+- Linux:
+
+## Asset Checklist
+
+- This Release must not be published with source archives only.
+- Attach real installable packages for every currently supported desktop platform.
+- If any platform package is missing, treat the Release as incomplete.
 
 ## macOS Note
 

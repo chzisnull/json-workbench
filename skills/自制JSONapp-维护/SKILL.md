@@ -17,6 +17,7 @@ description: Use when maintaining the JSON Workbench repository, GitHub releases
 - 优先保证 macOS Apple Silicon 可运行，其次保证 Windows 安装包可交付
 - Release 页面默认提供中英双语说明
 - 发布时不仅创建 tag / release，还要确认安装包资产已经上传
+- 只有源码包的 Release 视为未完成，必须上传各系统安装包
 
 ## 标准维护流程
 1. 检查工作区状态：`git status --short`
@@ -29,12 +30,19 @@ description: Use when maintaining the JSON Workbench repository, GitHub releases
 5. 产出安装包：
    - `npm run build:mac:arm64`
    - `npm run build:win:x64`
+   - `npm run build:linux`
 6. 验证 mac 包：
    - `file "dist/mac-arm64/JSON Workbench.app/Contents/MacOS/JSON Workbench"`
    - `spctl -a -vv "dist/mac-arm64/JSON Workbench.app"`
    - 直接运行 `.app` 或通过 `open` 验证
 7. 创建/更新 GitHub Release
 8. 上传 release assets，确认页面中能看到安装包而不只是源码包
+
+### 当前项目的最低发布资产要求
+- macOS：至少 1 个可安装包，优先 `arm64`，有条件则附带 universal
+- Windows：至少 1 个 `.exe` 安装程序
+- Linux：至少 1 个 Linux 安装产物，例如 `AppImage` 或 `deb`
+- 如果缺任一目标平台的软件包，Release 不算完成
 
 ## Release 说明要求
 Release 页面默认写成双语：
@@ -50,6 +58,7 @@ Release 页面默认写成双语：
 - English Summary
 - English Highlights
 - Assets / 安装包说明
+- 各系统安装包清单
 - mac 用户损坏修复提示
 
 ## 资产上传检查
@@ -62,6 +71,10 @@ GitHub Release 默认只有：
 
 上传后必须再检查：
 - `gh release view <tag> --json assets --jq '.assets[].name'`
+
+如果返回的资产列表里只有源码包，或者没有 mac / windows / linux 对应安装包：
+- 该 Release 仍然是不完整状态
+- 不能向用户宣称“已经发布完成”
 
 ## mac Apple Silicon 故障排查
 如果 M 系列 Mac 上出现“因为出现问题而无法打开”：
@@ -91,6 +104,7 @@ GitHub Release 默认只有：
 
 ## 常见坑
 - 只创建 GitHub Release，不上传安装包资产
+- 只上传了其中一个系统的软件包，却忘了其他系统
 - 只跑 `npm run build`，却误以为已经生成安装包
 - mac 打包完没有验证 `.app` 真能打开
 - Release 说明只有英文，没有中文
@@ -101,6 +115,6 @@ GitHub Release 默认只有：
 - 代码已提交并推送
 - tag 与 release 已创建
 - Release 页面有中英双语说明
-- 页面能看到 mac / windows 安装包资产
+- 页面能看到 mac / windows / linux 安装包资产
 - mac Apple Silicon 包本机可启动
 - Windows 安装包已成功产出

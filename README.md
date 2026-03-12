@@ -51,8 +51,15 @@ Future GitHub Releases should always include:
 
 - A Chinese introduction first, followed by an English summary.
 - Bilingual highlights for added, changed, and fixed items when applicable.
-- Install asset notes for macOS and Windows packages when those assets are uploaded.
+- Real installation assets for every supported desktop platform. A Release with only source archives is incomplete.
+- Asset notes that clearly tell users which file to download on macOS, Windows, and Linux.
 - A macOS recovery note for users who see the app reported as damaged:
+
+Minimum expected assets:
+
+- macOS: a signed or re-signed `.dmg` for Apple Silicon, and preferably a universal macOS package when available.
+- Windows: an `.exe` installer produced from the NSIS target.
+- Linux: at least one installable artifact such as `.AppImage` or `.deb` for the current release.
 
 ```bash
 xattr -cr /Applications/JSON\ Workbench.app
@@ -109,8 +116,15 @@ npm run build:win
 
 - 先写中文简介，再写英文简介。
 - 重要更新尽量同时提供中英双语要点。
-- 如果上传了 macOS / Windows 安装包，要在 Release 页面说明对应资产。
+- 必须附带当前支持平台的软件安装包；如果 Release 页面只有源码包，则该版本视为未完成发布。
+- 要在 Release 页面明确说明 macOS、Windows、Linux 各自应该下载哪个文件。
 - 如果 mac 用户遇到“应用已损坏”或无法打开的情况，要提示执行：
+
+最低要求的安装包资产：
+
+- macOS：Apple Silicon 对应的 `.dmg`，有条件时优先再附一个 universal macOS 包。
+- Windows：NSIS 生成的 `.exe` 安装程序。
+- Linux：至少附一个可直接安装或运行的产物，例如 `.AppImage` 或 `.deb`。
 
 ```bash
 xattr -cr /Applications/JSON\ Workbench.app
